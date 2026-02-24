@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Toy Store Cash">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#87CEEB">
+<title>Toy Store — Count Your Coins!</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&family=Black+Han+Sans&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --wood: #8B5E3C;
+    --wood-light: #C4885A;
+    --red: #E8392A;
+    --sign2: #F7B731;
+    --green: #2ECC71;
+    --green-dark: #27AE60;
+    --blue: #3498DB;
+    --purple: #9B59B6;
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: linear-gradient(180deg, #87CEEB 0%, #B0E0FF 40%, #FFF8E7 100%);
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    /* Push content below status bar when running as installed PWA */
+    padding-top: var(--sat);
+    padding-bottom: var(--sab);
+    padding-left: var(--sal);
+    padding-right: var(--sar);
+  }
+
+  /* =========== ADD TO HOME SCREEN NUDGE =========== */
+  #a2hs-banner {
+    display: none;
+    position: fixed;
+    bottom: calc(16px + var(--sab));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 999;
+    background: #1c1c1e;
+    color: white;
+    border-radius: 16px;
+    padding: 12px 16px 12px 14px;
+    width: min(360px, calc(100vw - 32px));
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    animation: slideUp 0.4s cubic-bezier(0.34,1.4,0.64,1) both;
+    gap: 12px;
+    align-items: center;
+  }
+  #a2hs-banner.show { display: flex; }
+  @keyframes slideUp { from{transform:translateX(-50%) translateY(80px);opacity:0} to{transform:translateX(-50%) translateY(0);opacity:1} }
+  #a2hs-icon { font-size: 2.2rem; flex-shrink: 0; }
+  #a2hs-text { flex: 1; }
+  #a2hs-text strong { display: block; font-size: 0.95rem; font-weight: 800; margin-bottom: 2px; }
+  #a2hs-text span { font-size: 0.78rem; opacity: 0.75; line-height: 1.4; }
+  #a2hs-text .a2hs-steps { display:flex; align-items:center; gap:4px; margin-top:5px; font-size:0.78rem; opacity:0.85; flex-wrap:wrap; }
+  #a2hs-text .a2hs-steps .sf-share { display:inline-block; background:rgba(255,255,255,0.15); border-radius:5px; padding:1px 6px; font-size:0.8rem; }
+  #a2hs-close { background: rgba(255,255,255,0.15); border: none; color: white; border-radius: 50%; width: 26px; height: 26px; font-size: 1rem; cursor: pointer; flex-shrink: 0; display:flex; align-items:center; justify-content:center; }
+  #a2hs-close:hover { background: rgba(255,255,255,0.25); }
+
+  /* =========== SCREENS =========== */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* =========== LEVEL SELECT =========== */
+  #screen-select { max-width: 680px; margin: 0 auto; padding: 24px 16px 40px; }
+  #select-title {
+    text-align: center;
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(2rem, 6vw, 3.4rem);
+    color: var(--wood);
+    text-shadow: 3px 3px 0 var(--sign2), 5px 5px 0 rgba(0,0,0,0.1);
+    margin-bottom: 6px;
+  }
+  #select-title span { color: var(--red); }
+  #select-subtitle { text-align: center; font-size: 1.05rem; font-weight: 700; color: #888; margin-bottom: 28px; }
+
+  .level-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 480px) { .level-cards { grid-template-columns: 1fr; } }
+
+  .level-card {
+    border-radius: 20px; padding: 22px 20px 18px; cursor: pointer;
+    position: relative; border: 3px solid transparent;
+    transition: transform 0.15s, box-shadow 0.15s; overflow: hidden; text-align: left;
+  }
+  .level-card:hover { transform: translateY(-4px) scale(1.02); }
+  .level-card:active { transform: scale(0.98); }
+  .level-card.lv1 { background: linear-gradient(135deg,#FFF8DC,#FFE8A0); border-color:#D4A843; box-shadow:0 6px 0 #9A7320,0 10px 20px rgba(180,130,0,0.2); }
+  .level-card.lv2 { background: linear-gradient(135deg,#E8F4FD,#BBD9F5); border-color:#2980B9; box-shadow:0 6px 0 #1A5276,0 10px 20px rgba(41,128,185,0.2); }
+  .level-card.lv3 { background: linear-gradient(135deg,#FDEBD0,#FAD7A0); border-color:#E67E22; box-shadow:0 6px 0 #9A5510,0 10px 20px rgba(230,126,34,0.2); }
+  .level-card.lv4 { background: linear-gradient(135deg,#F5EEF8,#D7BDE2); border-color:#884EA0; box-shadow:0 6px 0 #5B2C6F,0 10px 20px rgba(136,78,160,0.2); }
+  .level-card-num { font-family:'Fredoka One',cursive; font-size:0.85rem; letter-spacing:2px; opacity:0.5; text-transform:uppercase; margin-bottom:4px; }
+  .level-card-title { font-family:'Fredoka One',cursive; font-size:1.5rem; line-height:1.1; margin-bottom:8px; }
+  .level-card.lv1 .level-card-title { color:#7A5010; }
+  .level-card.lv2 .level-card-title { color:#1A4A7A; }
+  .level-card.lv3 .level-card-title { color:#7A3A10; }
+  .level-card.lv4 .level-card-title { color:#5B2C6F; }
+  .level-card-desc { font-size:0.88rem; font-weight:700; opacity:0.7; line-height:1.4; margin-bottom:12px; }
+  .level-card-coins { display:flex; gap:5px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
+  .level-card-coins span { font-size:0.75rem; font-weight:800; background:rgba(0,0,0,0.1); border-radius:10px; padding:2px 8px; }
+  .level-card-btn {
+    display:inline-block; font-family:'Fredoka One',cursive; font-size:1rem;
+    color:white; padding:8px 22px; border-radius:12px; border:none;
+    cursor:pointer; box-shadow:0 3px 0 rgba(0,0,0,0.2); transition:transform 0.1s;
+  }
+  .level-card:hover .level-card-btn { transform: scale(1.05); }
+  .level-card.lv1 .level-card-btn { background:#C89820; }
+  .level-card.lv2 .level-card-btn { background:#2471A3; }
+  .level-card.lv3 .level-card-btn { background:#CA6F1E; }
+  .level-card.lv4 .level-card-btn { background:#7D3C98; }
+  .level-card-stars { position:absolute; top:14px; right:14px; font-size:1.1rem; letter-spacing:1px; min-height:1.3rem; }
+  .level-card-badge { position:absolute; bottom:-8px; right:-8px; font-size:3rem; opacity:0.12; transform:rotate(-10deg); pointer-events:none; }
+
+  /* =========== GAME SCREEN =========== */
+  #screen-game { max-width: 700px; margin: 0 auto; padding: 0 16px 40px; }
+
+  #game-header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 0 10px; gap:10px; flex-wrap:wrap;
+  }
+  #back-btn {
+    background:rgba(139,94,60,0.15); border:2px solid var(--wood-light); color:var(--wood);
+    border-radius:10px; padding:6px 14px; font-family:'Nunito',sans-serif;
+    font-weight:800; font-size:0.85rem; cursor:pointer; transition:background 0.2s; white-space:nowrap;
+  }
+  #back-btn:hover { background:rgba(139,94,60,0.25); }
+  #game-title-bar { font-family:'Fredoka One',cursive; font-size:clamp(1.1rem,3vw,1.5rem); color:var(--wood); text-align:center; flex:1; }
+  #game-title-bar span { color:var(--red); }
+  #score-badge { background:var(--sign2); color:white; border-radius:20px; padding:4px 14px; font-weight:800; font-size:0.9rem; white-space:nowrap; box-shadow:0 3px 0 #C08A00; }
+
+  /* Progress pips */
+  #problem-progress { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  #progress-pips { display:flex; gap:4px; flex:1; }
+  .prob-pip { flex:1; height:10px; border-radius:5px; background:#ddd; transition:background 0.3s; }
+  .prob-pip.done-correct { background:var(--green); }
+  .prob-pip.done-wrong   { background:#E88; }
+  .prob-pip.current      { background:var(--sign2); animation:pipPulse 1s ease-in-out infinite; }
+  @keyframes pipPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  #problem-counter { font-weight:800; color:var(--wood); font-size:0.9rem; white-space:nowrap; }
+
+  /* Shelf */
+  #shelf {
+    background:linear-gradient(180deg,#D4956A 0%,#C4885A 60%,#8B5E3C 100%);
+    border-radius:16px 16px 8px 8px; padding:18px 20px 14px; position:relative;
+    box-shadow:0 6px 20px rgba(0,0,0,0.25),inset 0 2px 0 rgba(255,255,255,0.2);
+    border:3px solid #7A4F2A; margin-bottom:2px;
+  }
+  #shelf-sign {
+    font-family:'Fredoka One',cursive; font-size:1.1rem; color:var(--sign2);
+    background:var(--red); position:absolute; top:-18px; left:50%; transform:translateX(-50%);
+    padding:2px 20px; border-radius:20px; border:3px solid #7A0000; white-space:nowrap;
+    box-shadow:0 3px 8px rgba(0,0,0,0.2);
+  }
+  #product-display { display:flex; align-items:center; justify-content:center; gap:20px; flex-wrap:wrap; }
+  #toy-emoji { font-size:clamp(3.2rem,9vw,4.8rem); filter:drop-shadow(2px 4px 6px rgba(0,0,0,0.3)); animation:bob 2s ease-in-out infinite; }
+  @keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  #price-tag { background:#FFFDE7; border:3px dashed var(--wood); border-radius:12px; padding:10px 18px; text-align:center; box-shadow:3px 3px 0 rgba(0,0,0,0.15); transform:rotate(2deg); }
+  #price-tag .label { font-size:0.75rem; font-weight:800; color:#999; text-transform:uppercase; letter-spacing:1px; }
+  #price-tag .price { font-family:'Fredoka One',cursive; font-size:clamp(1.6rem,5vw,2.4rem); color:var(--red); line-height:1; }
+  #price-tag .toy-name { font-size:0.85rem; font-weight:700; color:var(--wood); margin-top:2px; }
+
+  /* Mascot */
+  #mascot-area { display:flex; align-items:center; gap:12px; margin:10px 0 8px; justify-content:center; }
+  #mascot { font-size:2.2rem; animation:wiggle 3s ease-in-out infinite; }
+  @keyframes wiggle { 0%,100%{transform:rotate(0)} 20%{transform:rotate(-8deg)} 40%{transform:rotate(8deg)} 60%{transform:rotate(-4deg)} 80%{transform:rotate(4deg)} }
+  #speech-bubble {
+    background:white; border-radius:16px; padding:8px 16px;
+    font-size:clamp(0.82rem,2.5vw,0.98rem); font-weight:700; color:#333;
+    box-shadow:0 3px 10px rgba(0,0,0,0.12); position:relative;
+    max-width:400px; border:2px solid #eee; min-height:40px; display:flex; align-items:center;
+  }
+  #speech-bubble::before { content:''; position:absolute; left:-12px; top:50%; transform:translateY(-50%); border:8px solid transparent; border-right-color:#eee; }
+  #speech-bubble::after  { content:''; position:absolute; left:-9px;  top:50%; transform:translateY(-50%); border:7px solid transparent; border-right-color:white; }
+
+  /* Register */
+  #register-area {
+    background:linear-gradient(135deg,#2c3e50,#3d5166); border-radius:14px;
+    padding:14px 16px; margin:8px 0; border:3px solid #1a252f;
+    box-shadow:0 4px 16px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+  #register-label { font-family:'Fredoka One',cursive; color:var(--sign2); font-size:0.9rem; letter-spacing:1px; margin-bottom:8px; text-align:center; }
+  #tray {
+    background:rgba(0,0,0,0.3); border-radius:10px; min-height:64px;
+    display:flex; flex-wrap:wrap; gap:6px; padding:10px;
+    align-items:center; border:2px solid rgba(255,255,255,0.1);
+  }
+  .tray-coin { cursor:pointer; transition:transform 0.1s; animation:dropIn 0.2s ease-out; }
+  .tray-coin:hover { transform:scale(1.15); }
+  @keyframes dropIn { from{transform:scale(0) rotate(-20deg);opacity:0} to{transform:scale(1) rotate(0);opacity:1} }
+  .tray-empty { color:rgba(255,255,255,0.3); font-size:0.85rem; font-style:italic; width:100%; text-align:center; }
+  #total-display { display:flex; justify-content:space-between; align-items:center; margin-top:8px; }
+  #total-label { color:rgba(255,255,255,0.7); font-size:0.85rem; font-weight:700; }
+  #total-amount { font-family:'Fredoka One',cursive; font-size:1.8rem; color:var(--sign2); text-shadow:0 0 10px rgba(247,183,49,0.5); }
+  #total-amount.bump { animation:bump 0.2s ease-out; }
+  @keyframes bump { 0%{transform:scale(1)} 50%{transform:scale(1.3)} 100%{transform:scale(1)} }
+  #clear-btn { background:rgba(255,255,255,0.15); color:rgba(255,255,255,0.8); border:none; border-radius:8px; padding:4px 12px; font-family:'Nunito',sans-serif; font-weight:700; font-size:0.8rem; cursor:pointer; transition:background 0.2s; }
+  #clear-btn:hover { background:rgba(255,100,100,0.4); color:white; }
+
+  /* Wallet */
+  #wallet-area { background:linear-gradient(135deg,#f9f3e8,#f0e5cc); border-radius:14px; padding:12px 16px; border:3px solid var(--wood-light); box-shadow:0 4px 12px rgba(0,0,0,0.1); }
+  #wallet-label { font-family:'Fredoka One',cursive; color:var(--wood); font-size:0.9rem; letter-spacing:1px; margin-bottom:10px; text-align:center; }
+  #coins-grid { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
+
+  .coin-btn { display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; background:none; border:none; padding:6px; border-radius:12px; transition:transform 0.1s,background 0.1s; }
+  .coin-btn:hover { transform:scale(1.15) translateY(-3px); background:rgba(0,0,0,0.06); }
+  .coin-btn:active { transform:scale(0.95); }
+  .coin-svg { display:block; filter:drop-shadow(0 4px 3px rgba(0,0,0,0.4)); transition:filter 0.1s; }
+  .coin-btn:hover .coin-svg { filter:drop-shadow(0 6px 6px rgba(0,0,0,0.5)) brightness(1.08); }
+  .coin-btn .coin-name { font-size:0.68rem; font-weight:800; color:#555; text-align:center; line-height:1.1; font-family:'Black Han Sans',sans-serif; letter-spacing:0.5px; }
+
+  .bill-btn { display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; background:none; border:none; padding:4px; border-radius:8px; transition:transform 0.1s,background 0.1s; }
+  .bill-btn:hover { transform:scale(1.08) translateY(-3px); background:rgba(0,0,0,0.06); }
+  .bill-btn:active { transform:scale(0.95); }
+  .bill-rect {
+    border-radius:6px; display:flex; align-items:center; justify-content:center;
+    font-family:'Black Han Sans',sans-serif; font-size:1.05rem; letter-spacing:1px;
+    position:relative; overflow:hidden; color:white; user-select:none;
+    text-shadow:0 1px 2px rgba(0,0,0,0.4);
+  }
+  .bill-rect::before { content:''; position:absolute; inset:3px; border:1.5px solid rgba(255,255,255,0.25); border-radius:3px; pointer-events:none; }
+  .bill-rect::after  { content:''; position:absolute; inset:0; background:repeating-linear-gradient(90deg,transparent,transparent 3px,rgba(0,0,0,0.04) 3px,rgba(0,0,0,0.04) 4px); pointer-events:none; }
+  .bill-1  { width:80px; height:38px; background:linear-gradient(135deg,#5ED989 0%,#27AE60 40%,#1A7A44 100%); box-shadow:2px 4px 0 #0D4A28,0 6px 14px rgba(0,0,0,0.25); }
+  .bill-5  { width:80px; height:38px; background:linear-gradient(135deg,#85C1E9 0%,#2E86C1 40%,#1A5276 100%); box-shadow:2px 4px 0 #0D2B40,0 6px 14px rgba(0,0,0,0.25); }
+  .bill-10 { width:80px; height:38px; background:linear-gradient(135deg,#F5B041 0%,#D68910 40%,#9A6106 100%); box-shadow:2px 4px 0 #6E4604,0 6px 14px rgba(0,0,0,0.25); }
+  .bill-20 { width:80px; height:38px; background:linear-gradient(135deg,#C39BD3 0%,#884EA0 40%,#5B2C6F 100%); box-shadow:2px 4px 0 #3D1A4B,0 6px 14px rgba(0,0,0,0.25); }
+  .bill-btn .coin-name { font-size:0.65rem; font-weight:800; color:#555; text-align:center; font-family:'Black Han Sans',sans-serif; letter-spacing:0.5px; }
+
+  #change-hint { text-align:center; font-size:0.88rem; font-weight:700; color:var(--purple); margin-top:4px; min-height:20px; }
+
+  #check-btn {
+    display:block; width:100%; margin:12px 0 4px; padding:14px;
+    font-family:'Fredoka One',cursive; font-size:1.4rem; color:white;
+    background:linear-gradient(135deg,var(--green),var(--green-dark));
+    border:none; border-radius:14px; cursor:pointer;
+    box-shadow:0 5px 0 #1A7A44,0 8px 15px rgba(0,0,0,0.2);
+    transition:transform 0.1s,box-shadow 0.1s; letter-spacing:1px;
+  }
+  #check-btn:hover { transform:translateY(-2px); box-shadow:0 7px 0 #1A7A44,0 10px 20px rgba(0,0,0,0.2); }
+  #check-btn:active { transform:translateY(3px); box-shadow:0 2px 0 #1A7A44; }
+
+  /* =========== OVERLAYS =========== */
+  .overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:100; align-items:center; justify-content:center; }
+  .overlay.show { display:flex; }
+  .overlay-box {
+    background:white; border-radius:24px; padding:30px 36px;
+    text-align:center; max-width:420px; width:92%;
+    box-shadow:0 20px 60px rgba(0,0,0,0.4);
+    animation:popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes popIn { from{transform:scale(0.5);opacity:0} to{transform:scale(1);opacity:1} }
+
+  /* Per-problem correct */
+  #overlay-correct .overlay-box { max-width:340px; padding:24px 28px; }
+  #overlay-correct .ov-emoji { font-size:3.2rem; margin-bottom:8px; }
+  #overlay-correct .ov-title { font-family:'Fredoka One',cursive; font-size:1.6rem; color:var(--green-dark); margin-bottom:6px; }
+  #overlay-correct .ov-msg   { font-size:0.95rem; color:#555; font-weight:700; margin-bottom:18px; }
+  #overlay-correct .ov-btn   { font-family:'Fredoka One',cursive; font-size:1.1rem; color:white; background:linear-gradient(135deg,var(--green),var(--green-dark)); border:none; border-radius:12px; padding:10px 28px; cursor:pointer; box-shadow:0 4px 0 #1A7A44; transition:transform 0.1s; }
+  #overlay-correct .ov-btn:hover { transform:translateY(-2px); }
+
+  /* Level-complete fanfare */
+  #overlay-levelwin .overlay-box { max-width:480px; background:linear-gradient(160deg,#FFF8DC,#FFFAEC); border:4px solid var(--sign2); }
+  #overlay-levelwin .ov-trophy { font-size:5rem; margin-bottom:10px; animation:trophyBounce 0.6s cubic-bezier(0.34,1.8,0.64,1) both; }
+  @keyframes trophyBounce { from{transform:scale(0) rotate(-20deg)} to{transform:scale(1) rotate(0)} }
+  #overlay-levelwin .ov-title { font-family:'Fredoka One',cursive; font-size:2.2rem; color:var(--red); margin-bottom:6px; }
+  #overlay-levelwin .ov-stars { font-size:2.5rem; letter-spacing:6px; margin-bottom:10px; animation:starsIn 0.5s 0.3s both; }
+  @keyframes starsIn { from{opacity:0;transform:scale(0.3)} to{opacity:1;transform:scale(1)} }
+  #overlay-levelwin .ov-msg  { font-size:1rem; color:#666; font-weight:700; margin-bottom:8px; line-height:1.5; }
+  #overlay-levelwin .ov-score { font-family:'Fredoka One',cursive; font-size:1.3rem; color:var(--wood); margin-bottom:20px; }
+  .ov-btns { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+  .ov-btn-main { font-family:'Fredoka One',cursive; font-size:1.1rem; color:white; background:linear-gradient(135deg,#F7B731,#E09000); border:none; border-radius:14px; padding:12px 28px; cursor:pointer; box-shadow:0 4px 0 #9A6000; transition:transform 0.1s; }
+  .ov-btn-main:hover { transform:translateY(-2px); }
+  .ov-btn-sec { font-family:'Fredoka One',cursive; font-size:1.1rem; color:var(--wood); background:white; border:3px solid var(--wood-light); border-radius:14px; padding:10px 24px; cursor:pointer; transition:background 0.2s; }
+  .ov-btn-sec:hover { background:#f5ece0; }
+
+  .shake { animation:shake 0.4s ease-out; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }
+
+  /* =========== CONFETTI =========== */
+  #confetti-container { position:fixed; inset:0; pointer-events:none; z-index:200; overflow:hidden; }
+  .confetti-piece { position:absolute; opacity:0; animation:confettiFall linear forwards; }
+  @keyframes confettiFall { 0%{opacity:1;transform:translateY(-20px) rotate(0deg)} 100%{opacity:0;transform:translateY(100vh) rotate(720deg)} }
+
+  @media(max-width:480px){
+    .bill-rect{width:68px;}
+    .overlay-box{padding:22px 18px;}
+  }
+</style>
+</head>
+<body>
+<div id="confetti-container"></div>
+
+<!-- ============================================================ -->
+<!--  LEVEL SELECT                                                 -->
+<!-- ============================================================ -->
+<div id="screen-select" class="screen active">
+  <div id="select-title">🧸 <span>Toy</span> Store Cash!</div>
+  <div id="select-subtitle">Choose your challenge — 10 questions each! 🎯</div>
+  <div class="level-cards">
+
+    <div class="level-card lv1" onclick="startLevel(0)">
+      <div class="level-card-stars" id="stars-0"></div>
+      <div class="level-card-num">Level 1</div>
+      <div class="level-card-title">Coins Only!</div>
+      <div class="level-card-desc">Count pennies, nickels, dimes &amp; quarters to pay for toys exactly.</div>
+      <div class="level-card-coins"><span>1¢ Penny</span><span>5¢ Nickel</span><span>10¢ Dime</span><span>25¢ Quarter</span></div>
+      <div class="level-card-btn">Play →</div>
+      <div class="level-card-badge">🪙</div>
+    </div>
+
+    <div class="level-card lv2" onclick="startLevel(1)">
+      <div class="level-card-stars" id="stars-1"></div>
+      <div class="level-card-num">Level 2</div>
+      <div class="level-card-title">Bills Too!</div>
+      <div class="level-card-desc">Use dollar bills up to $20 along with coins to pay the exact price.</div>
+      <div class="level-card-coins"><span>All coins</span><span>$1</span><span>$5</span><span>$10</span><span>$20</span></div>
+      <div class="level-card-btn">Play →</div>
+      <div class="level-card-badge">💵</div>
+    </div>
+
+    <div class="level-card lv3" onclick="startLevel(2)">
+      <div class="level-card-stars" id="stars-2"></div>
+      <div class="level-card-num">Level 3</div>
+      <div class="level-card-title">Make Change!</div>
+      <div class="level-card-desc">Customer pays with a $1 bill — count back the correct change in coins.</div>
+      <div class="level-card-coins"><span>1¢</span><span>5¢</span><span>10¢</span><span>25¢</span><span>Pay with $1</span></div>
+      <div class="level-card-btn">Play →</div>
+      <div class="level-card-badge">🔄</div>
+    </div>
+
+    <div class="level-card lv4" onclick="startLevel(3)">
+      <div class="level-card-stars" id="stars-3"></div>
+      <div class="level-card-num">Level 4</div>
+      <div class="level-card-title">Big Change!</div>
+      <div class="level-card-desc">Give change from $1, $5, $10 and $20 bills. Master level! 🏆</div>
+      <div class="level-card-coins"><span>All coins</span><span>$1</span><span>$5</span><span>$10 bills</span></div>
+      <div class="level-card-btn">Play →</div>
+      <div class="level-card-badge">🏆</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!--  GAME SCREEN                                                  -->
+<!-- ============================================================ -->
+<div id="screen-game" class="screen">
+
+  <div id="game-header">
+    <button id="back-btn" onclick="goHome()">← Levels</button>
+    <div id="game-title-bar">🧸 <span>Toy</span> Store</div>
+    <div id="score-badge">⭐ <span id="score-display">0</span></div>
+  </div>
+
+  <div id="problem-progress">
+    <div id="progress-pips"></div>
+    <div id="problem-counter">1 / 10</div>
+  </div>
+
+  <div id="shelf">
+    <div id="shelf-sign">🧸 Toy Store 🎠</div>
+    <div id="product-display">
+      <div id="toy-emoji">🎪</div>
+      <div id="price-tag">
+        <div class="label">Price</div>
+        <div class="price" id="price-display">$0.00</div>
+        <div class="toy-name" id="toy-name-display">Loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="mascot-area">
+    <div id="mascot">🦊</div>
+    <div id="speech-bubble"><span id="speech-text">Welcome! Let's count some money!</span></div>
+  </div>
+
+  <div id="register-area">
+    <div id="register-label">💰 YOUR REGISTER TRAY</div>
+    <div id="tray"><span class="tray-empty">Click coins below to add them here!</span></div>
+    <div id="total-display">
+      <span id="total-label">Total in tray:</span>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button id="clear-btn" onclick="clearTray()">✕ Clear</button>
+        <span id="total-amount">$0.00</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="change-hint"></div>
+
+  <div id="wallet-area">
+    <div id="wallet-label">👜 YOUR WALLET — Click to add!</div>
+    <div id="coins-grid"></div>
+  </div>
+
+  <button id="check-btn" onclick="checkAnswer()">💵 Pay Now!</button>
+</div>
+
+<!-- ============================================================ -->
+<!--  OVERLAYS                                                     -->
+<!-- ============================================================ -->
+
+<!-- Per-problem correct -->
+<div id="overlay-correct" class="overlay">
+  <div class="overlay-box">
+    <div class="ov-emoji" id="oc-emoji">🎉</div>
+    <div class="ov-title" id="oc-title">Correct!</div>
+    <div class="ov-msg"   id="oc-msg">Amazing work!</div>
+    <button class="ov-btn" id="oc-btn" onclick="nextProblem()">Next Question →</button>
+  </div>
+</div>
+
+<!-- Level-complete fanfare -->
+<div id="overlay-levelwin" class="overlay">
+  <div class="overlay-box">
+    <div class="ov-trophy" id="ow-trophy">🏆</div>
+    <div class="ov-title"  id="ow-title">Level Complete!</div>
+    <div class="ov-stars"  id="ow-stars">⭐⭐⭐</div>
+    <div class="ov-msg"    id="ow-msg">You finished all 10 questions!</div>
+    <div class="ov-score"  id="ow-score">Score: 0</div>
+    <div class="ov-btns">
+      <button class="ov-btn-sec" onclick="goHome()">← All Levels</button>
+      <button class="ov-btn-main" id="ow-next-btn" onclick="replayOrNext()">Next Level →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!--  JAVASCRIPT                                                   -->
+<!-- ============================================================ -->
+<script>
+// =====================================================
+//  GAME DATA
+// =====================================================
+const TOYS = [
+  {emoji:'🎈',name:'Balloon'},{emoji:'🪀',name:'Yo-Yo'},{emoji:'🧩',name:'Puzzle'},
+  {emoji:'🤖',name:'Robot'},{emoji:'🎠',name:'Carousel'},{emoji:'🧸',name:'Teddy Bear'},
+  {emoji:'🎯',name:'Dart Board'},{emoji:'🚂',name:'Train Set'},{emoji:'🎨',name:'Paint Set'},
+  {emoji:'🛹',name:'Skateboard'},{emoji:'🎮',name:'Game Controller'},{emoji:'🪁',name:'Boomerang'},
+  {emoji:'🚀',name:'Rocket Ship'},{emoji:'🦕',name:'Dinosaur'},{emoji:'🎡',name:'Ferris Wheel'},
+  {emoji:'🏆',name:'Trophy'},{emoji:'🎪',name:'Circus Tent'},{emoji:'🎻',name:'Toy Violin'},
+  {emoji:'🧲',name:'Magnet Set'},{emoji:'🪆',name:'Nesting Doll'},{emoji:'🎲',name:'Board Game'},
+];
+const MASCOTS = ['🦊','🐨','🦄','🐸','🐼','🦁','🐙','🦉'];
+
+const COIN_DATA = {
+  penny:   {value:1,    label:'1¢',  display:'1¢',  type:'coin'},
+  nickel:  {value:5,    label:'5¢',  display:'5¢',  type:'coin'},
+  dime:    {value:10,   label:'10¢', display:'10¢', type:'coin'},
+  quarter: {value:25,   label:'25¢', display:'25¢', type:'coin'},
+  dollar:  {value:100,  label:'$1',  display:'$1',  type:'bill', billClass:'bill-1'},
+  five:    {value:500,  label:'$5',  display:'$5',  type:'bill', billClass:'bill-5'},
+  ten:     {value:1000, label:'$10', display:'$10', type:'bill', billClass:'bill-10'},
+  twenty:  {value:2000, label:'$20', display:'$20', type:'bill', billClass:'bill-20'},
+};
+
+// 4 big levels, each has 10 problem configs that ramp in difficulty
+const BIG_LEVELS = [
+  {
+    id:0, type:'exact',
+    coins:['penny','nickel','dime','quarter'],
+    problemSets:[
+      {priceRange:[1,4],   priceUnit:'cents'},
+      {priceRange:[5,9],   priceUnit:'cents'},
+      {priceRange:[5,14],  priceUnit:'cents'},
+      {priceRange:[10,19], priceUnit:'cents'},
+      {priceRange:[10,24], priceUnit:'cents'},
+      {priceRange:[15,29], priceUnit:'cents'},
+      {priceRange:[25,49], priceUnit:'cents'},
+      {priceRange:[26,49], priceUnit:'cents'},
+      {priceRange:[30,74], priceUnit:'cents'},
+      {priceRange:[50,99], priceUnit:'cents'},
+    ],
+  },
+  {
+    id:1, type:'exact',
+    coins:['penny','nickel','dime','quarter','dollar','five','ten','twenty'],
+    problemSets:[
+      {priceRange:[101,149], priceUnit:'dollars'},
+      {priceRange:[101,199], priceUnit:'dollars'},
+      {priceRange:[150,299], priceUnit:'dollars'},
+      {priceRange:[200,499], priceUnit:'dollars'},
+      {priceRange:[301,599], priceUnit:'dollars'},
+      {priceRange:[500,999], priceUnit:'dollars'},
+      {priceRange:[600,999], priceUnit:'dollars'},
+      {priceRange:[1001,1499],priceUnit:'dollars'},
+      {priceRange:[1200,1799],priceUnit:'dollars'},
+      {priceRange:[1500,1999],priceUnit:'dollars'},
+    ],
+  },
+  {
+    id:2, type:'change',
+    coins:['penny','nickel','dime','quarter'],
+    problemSets:[
+      {priceRange:[5,20],  payWith:'dollar'},
+      {priceRange:[10,30], payWith:'dollar'},
+      {priceRange:[15,40], payWith:'dollar'},
+      {priceRange:[20,50], payWith:'dollar'},
+      {priceRange:[25,59], payWith:'dollar'},
+      {priceRange:[30,64], payWith:'dollar'},
+      {priceRange:[35,69], payWith:'dollar'},
+      {priceRange:[40,74], payWith:'dollar'},
+      {priceRange:[45,79], payWith:'dollar'},
+      {priceRange:[50,95], payWith:'dollar'},
+    ],
+  },
+  {
+    id:3, type:'change',
+    coins:['penny','nickel','dime','quarter','dollar','five','ten'],
+    problemSets:[
+      {priceRange:[5,95],    payWith:'dollar'},
+      {priceRange:[101,490], payWith:'five'},
+      {priceRange:[101,490], payWith:'five'},
+      {priceRange:[101,990], payWith:'ten'},
+      {priceRange:[201,990], payWith:'ten'},
+      {priceRange:[101,1990],payWith:'twenty'},
+      {priceRange:[501,1990],payWith:'twenty'},
+      {priceRange:[101,990], payWith:'ten'},
+      {priceRange:[301,490], payWith:'five'},
+      {priceRange:[501,1990],payWith:'twenty'},
+    ],
+  },
+];
+
+// =====================================================
+//  SVG COIN RENDERER — silver quarter
+// =====================================================
+const COIN_SVG_CONFIG = {
+  penny:   {size:52,label:'1¢', textSize:14,colors:{rim:'#7A3C10',mid:'#C0621A',light:'#E8884A',shine:'#F4B07A',text:'#5C2A08',textShadow:'#F0A060'}},
+  nickel:  {size:58,label:'5¢', textSize:14,colors:{rim:'#5A5A5F',mid:'#8E8E93',light:'#C8C8CE',shine:'#E4E4EA',text:'#2A2A2F',textShadow:'#E0E0E8'}},
+  dime:    {size:44,label:'10¢',textSize:11,colors:{rim:'#505055',mid:'#888890',light:'#C0C0C8',shine:'#DCDCE4',text:'#282830',textShadow:'#D8D8E0'}},
+  quarter: {size:64,label:'25¢',textSize:14,colors:{rim:'#505055',mid:'#888890',light:'#C8C8CE',shine:'#E4E4EA',text:'#2A2A2F',textShadow:'#D8D8E0'}},
+};
+
+function makeCoinSVG(key, forTray) {
+  const cfg = COIN_SVG_CONFIG[key];
+  if (!cfg) return '';
+  const s = forTray ? Math.round(cfg.size * 0.72) : cfg.size;
+  const r = s/2, c = r;
+  const rimW = Math.max(2, s*0.06);
+  const innerR = r - rimW;
+  const ts = forTray ? Math.round(cfg.textSize*0.78) : cfg.textSize;
+  const textY = c + ts*0.38;
+  const reedCount = Math.round(s*1.1);
+  let reeds = '';
+  for(let i=0;i<reedCount;i++){
+    const a=(i/reedCount)*Math.PI*2;
+    reeds+=`<line x1="${(c+(r-0.5)*Math.cos(a)).toFixed(1)}" y1="${(c+(r-0.5)*Math.sin(a)).toFixed(1)}" x2="${(c+(r-rimW*0.6)*Math.cos(a)).toFixed(1)}" y2="${(c+(r-rimW*0.6)*Math.sin(a)).toFixed(1)}" stroke="${cfg.colors.rim}" stroke-width="1.2" opacity="0.7"/>`;
+  }
+  const id=key+'_'+Math.random().toString(36).slice(2,7);
+  return `<svg class="coin-svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <radialGradient id="bg_${id}" cx="38%" cy="32%" r="65%">
+    <stop offset="0%"   stop-color="${cfg.colors.shine}"/>
+    <stop offset="35%"  stop-color="${cfg.colors.light}"/>
+    <stop offset="70%"  stop-color="${cfg.colors.mid}"/>
+    <stop offset="100%" stop-color="${cfg.colors.rim}"/>
+  </radialGradient>
+  <radialGradient id="face_${id}" cx="40%" cy="35%" r="60%">
+    <stop offset="0%"   stop-color="${cfg.colors.light}" stop-opacity="0.6"/>
+    <stop offset="100%" stop-color="${cfg.colors.rim}"   stop-opacity="0.15"/>
+  </radialGradient>
+  <radialGradient id="gloss_${id}" cx="35%" cy="25%" r="55%">
+    <stop offset="0%"   stop-color="rgba(255,255,255,0.55)"/>
+    <stop offset="60%"  stop-color="rgba(255,255,255,0.05)"/>
+    <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+  </radialGradient>
+  <clipPath id="clip_${id}"><circle cx="${c}" cy="${c}" r="${innerR}"/></clipPath>
+</defs>
+<circle cx="${c}" cy="${c}" r="${r}" fill="url(#bg_${id})"/>
+${reeds}
+<circle cx="${c}" cy="${c}" r="${innerR}" fill="url(#bg_${id})"/>
+<circle cx="${c}" cy="${c}" r="${innerR}" fill="url(#face_${id})"/>
+<circle cx="${c}" cy="${c}" r="${(innerR-3).toFixed(1)}" fill="none" stroke="${cfg.colors.rim}" stroke-width="0.8" opacity="0.4"/>
+<circle cx="${c}" cy="${c}" r="${(innerR-5).toFixed(1)}" fill="none" stroke="${cfg.colors.shine}" stroke-width="0.5" opacity="0.3"/>
+<text x="${(c+0.8).toFixed(1)}" y="${(textY+1).toFixed(1)}" text-anchor="middle" font-family="Black Han Sans,sans-serif" font-size="${ts}" fill="${cfg.colors.rim}" opacity="0.5">${cfg.label}</text>
+<text x="${c}" y="${textY.toFixed(1)}" text-anchor="middle" font-family="Black Han Sans,sans-serif" font-size="${ts}" fill="${cfg.colors.text}" style="paint-order:stroke;stroke:${cfg.colors.textShadow};stroke-width:2.5;stroke-linejoin:round;">${cfg.label}</text>
+<ellipse cx="${(c*0.72).toFixed(1)}" cy="${(c*0.58).toFixed(1)}" rx="${(r*0.42).toFixed(1)}" ry="${(r*0.22).toFixed(1)}" fill="url(#gloss_${id})" clip-path="url(#clip_${id})"/>
+<path d="M${(c-innerR*0.7).toFixed(1)} ${(c+innerR*0.72).toFixed(1)} Q${c} ${(c+innerR*1.02).toFixed(1)} ${(c+innerR*0.7).toFixed(1)} ${(c+innerR*0.72).toFixed(1)}" fill="none" stroke="${cfg.colors.rim}" stroke-width="2" opacity="0.25" clip-path="url(#clip_${id})"/>
+</svg>`;
+}
+
+// =====================================================
+//  STATE
+// =====================================================
+let currentBigLevel = 0;
+let problemIndex    = 0;
+let problemResults  = [];   // true/false per problem
+let currentPriceCents = 0;
+let targetCents     = 0;
+let trayContents    = [];
+let score           = 0;
+let wrongAttempts   = 0;
+let currentToy      = null;
+let levelBestScores = [null,null,null,null];
+let levelBestCorrect= [null,null,null,null];
+
+// =====================================================
+//  AUDIO
+// =====================================================
+let audioCtx = null;
+function getAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
+function playTone(freq,dur,type,vol){
+  dur=dur||0.15;type=type||'sine';vol=vol||0.3;
+  try{const ctx=getAudio(),o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(vol,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);o.start();o.stop(ctx.currentTime+dur);}catch(e){}
+}
+function playCoinSound(){playTone(880,0.08,'sine',0.2);setTimeout(()=>playTone(1100,0.06,'sine',0.15),60);}
+function playSuccessSound(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>playTone(f,0.18,'sine',0.3),i*100));}
+function playWrongSound(){playTone(200,0.3,'sawtooth',0.2);}
+function playCashRegister(){[880,1100,1320].forEach((f,i)=>setTimeout(()=>playTone(f,0.12,'square',0.15),i*60));}
+function playFanfare(){
+  // Triumphant ascending fanfare
+  const seq=[523,659,784,1047,784,1047,1319,1047,1319,1568];
+  seq.forEach((f,i)=>setTimeout(()=>playTone(f,0.22,'sine',0.35),i*120));
+  setTimeout(()=>{
+    [1047,1319,1568,2093].forEach((f,i)=>setTimeout(()=>playTone(f,0.4,'sine',0.3),i*80));
+  },seq.length*120+100);
+}
+
+// =====================================================
+//  FORMAT
+// =====================================================
+function formatDollars(c){
+  const d=Math.floor(c/100),cents=c%100;
+  return '$'+d+'.'+String(cents).padStart(2,'0');
+}
+
+// =====================================================
+//  NAVIGATION
+// =====================================================
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function closeAllOverlays(){
+  document.querySelectorAll('.overlay').forEach(o=>o.classList.remove('show'));
+}
+function goHome(){
+  closeAllOverlays();
+  refreshLevelCards();
+  showScreen('screen-select');
+}
+function startLevel(lvlIdx){
+  currentBigLevel = lvlIdx;
+  problemIndex    = 0;
+  problemResults  = [];
+  score           = 0;
+  document.getElementById('score-display').textContent = '0';
+  document.getElementById('mascot').textContent = MASCOTS[Math.floor(Math.random()*MASCOTS.length)];
+  showScreen('screen-game');
+  setupProblem();
+}
+
+// =====================================================
+//  SETUP PROBLEM
+// =====================================================
+function setupProblem(){
+  trayContents  = [];
+  wrongAttempts = 0;
+  const lvl = BIG_LEVELS[currentBigLevel];
+  const ps  = lvl.problemSets[problemIndex];
+  const [min,max] = ps.priceRange;
+
+  let price = randInt(min, max);
+  // Round to nearest 5¢ for clean numbers
+  price = Math.round(price/5)*5;
+  if(price<min) price=min;
+  if(price>max) price=max;
+  currentPriceCents = price;
+
+  if(lvl.type==='change'){
+    const payAmt = COIN_DATA[ps.payWith].value;
+    currentPriceCents = Math.min(currentPriceCents, payAmt-5);
+    if(currentPriceCents<5) currentPriceCents=5;
+    targetCents = payAmt - currentPriceCents;
+  } else {
+    targetCents = currentPriceCents;
+  }
+
+  currentToy = TOYS[Math.floor(Math.random()*TOYS.length)];
+
+  renderPricetag();
+  renderTray();
+  renderWallet();
+  renderProgressPips();
+  updateSpeech();
+  updateChangeHint();
+  document.getElementById('problem-counter').textContent = (problemIndex+1)+' / 10';
+}
+
+function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+
+// =====================================================
+//  RENDER
+// =====================================================
+function renderPricetag(){
+  document.getElementById('toy-emoji').textContent      = currentToy.emoji;
+  document.getElementById('toy-name-display').textContent = currentToy.name;
+  document.getElementById('price-display').textContent  = formatDollars(currentPriceCents);
+}
+
+function renderTray(){
+  const tray = document.getElementById('tray');
+  if(trayContents.length===0){
+    tray.innerHTML='<span class="tray-empty">Click coins below to add them here!</span>';
+  } else {
+    tray.innerHTML='';
+    trayContents.forEach((key,idx)=>{
+      const cd=COIN_DATA[key];
+      const el=document.createElement('div');
+      el.className='tray-coin';
+      el.title='Click to remove';
+      if(cd.type==='coin'){
+        el.innerHTML=makeCoinSVG(key,true);
+      } else {
+        el.innerHTML=`<div class="bill-rect ${cd.billClass}" style="width:56px;height:26px;font-size:0.9rem;">${cd.display}</div>`;
+      }
+      el.onclick=()=>removeFromTray(idx);
+      tray.appendChild(el);
+    });
+  }
+  const totalEl=document.getElementById('total-amount');
+  const total=trayContents.reduce((s,k)=>s+COIN_DATA[k].value,0);
+  totalEl.textContent=formatDollars(total);
+  totalEl.classList.remove('bump');
+  void totalEl.offsetWidth;
+  totalEl.classList.add('bump');
+}
+
+function renderWallet(){
+  const lvl=BIG_LEVELS[currentBigLevel];
+  const grid=document.getElementById('coins-grid');
+  grid.innerHTML='';
+  lvl.coins.forEach(key=>{
+    const cd=COIN_DATA[key];
+    const btn=document.createElement('button');
+    if(cd.type==='coin'){
+      btn.className='coin-btn';
+      btn.innerHTML=`${makeCoinSVG(key,false)}<span class="coin-name">${key.charAt(0).toUpperCase()+key.slice(1)}</span>`;
+    } else {
+      btn.className='bill-btn';
+      btn.innerHTML=`<div class="bill-rect ${cd.billClass}">${cd.display}</div><span class="coin-name">${cd.display} Bill</span>`;
+    }
+    btn.onclick=()=>addToTray(key);
+    grid.appendChild(btn);
+  });
+}
+
+function renderProgressPips(){
+  const container=document.getElementById('progress-pips');
+  container.innerHTML='';
+  for(let i=0;i<10;i++){
+    const pip=document.createElement('div');
+    pip.className='prob-pip '+(
+      i<problemResults.length
+        ?(problemResults[i]?'done-correct':'done-wrong')
+        :i===problemIndex?'current':''
+    );
+    container.appendChild(pip);
+  }
+}
+
+function updateSpeech(msg){
+  if(msg){document.getElementById('speech-text').textContent=msg;return;}
+  const lvl=BIG_LEVELS[currentBigLevel];
+  const ps=lvl.problemSets[problemIndex];
+  const msgs=lvl.type==='exact'
+    ?[
+        `Can you pay exactly ${formatDollars(currentPriceCents)} for the ${currentToy.name}?`,
+        `The ${currentToy.name} costs ${formatDollars(currentPriceCents)}. Count out the right amount!`,
+        `I need ${formatDollars(currentPriceCents)} please! What coins and bills make that?`,
+      ]
+    :[
+        `The ${currentToy.name} costs ${formatDollars(currentPriceCents)}. You pay with ${COIN_DATA[ps.payWith].label}. Count the change!`,
+        `Pay ${formatDollars(currentPriceCents)} with a ${COIN_DATA[ps.payWith].label} bill — what change goes back?`,
+      ];
+  document.getElementById('speech-text').textContent=msgs[Math.floor(Math.random()*msgs.length)];
+}
+
+function updateChangeHint(){
+  const lvl=BIG_LEVELS[currentBigLevel];
+  const hint=document.getElementById('change-hint');
+  if(lvl.type==='change'){
+    const ps=lvl.problemSets[problemIndex];
+    hint.textContent=`💡 Pay with ${COIN_DATA[ps.payWith].label} → give back ${formatDollars(targetCents)} in change`;
+  } else {
+    hint.textContent='';
+  }
+}
+
+// =====================================================
+//  TRAY ACTIONS
+// =====================================================
+function addToTray(key){
+  trayContents.push(key);
+  playCoinSound();
+  renderTray();
+  const total=trayContents.reduce((s,k)=>s+COIN_DATA[k].value,0);
+  if(total>targetCents) updateSpeech("Oops, that's too much! Click a coin in the tray to remove it. 😅");
+}
+function removeFromTray(idx){
+  trayContents.splice(idx,1);
+  playCoinSound();
+  renderTray();
+  updateSpeech();
+  updateChangeHint();
+}
+function clearTray(){
+  trayContents=[];
+  renderTray();
+  updateSpeech();
+  updateChangeHint();
+}
+
+// =====================================================
+//  CHECK ANSWER
+// =====================================================
+function checkAnswer(){
+  const total=trayContents.reduce((s,k)=>s+COIN_DATA[k].value,0);
+  if(total===targetCents){
+    const pts=Math.max(5,30-wrongAttempts*8);
+    score+=pts;
+    document.getElementById('score-display').textContent=score;
+    playCashRegister();
+    setTimeout(playSuccessSound,180);
+    spawnConfetti(40);
+    problemResults.push(true);
+    renderProgressPips();
+    showCorrectOverlay(pts);
+  } else {
+    wrongAttempts++;
+    playWrongSound();
+    document.getElementById('register-area').classList.add('shake');
+    setTimeout(()=>document.getElementById('register-area').classList.remove('shake'),500);
+    let hint='';
+    if(total===0) hint='Add some coins or bills first! 🪙';
+    else if(total<targetCents) hint=`You need ${formatDollars(targetCents-total)} more! Keep going! 💪`;
+    else hint=`That's ${formatDollars(total-targetCents)} too much! Remove some. 😅`;
+    updateSpeech(hint);
+    if(wrongAttempts>=3) giveHint();
+  }
+}
+
+function giveHint(){
+  const lvl=BIG_LEVELS[currentBigLevel];
+  const remaining=targetCents-trayContents.reduce((s,k)=>s+COIN_DATA[k].value,0);
+  const avail=[...lvl.coins].reverse();
+  let r=Math.abs(remaining);
+  const sug=[];
+  for(const k of avail){const v=COIN_DATA[k].value,n=Math.floor(r/v);if(n>0){sug.push(`${n}×${COIN_DATA[k].display}`);r-=n*v;}}
+  if(sug.length>0) updateSpeech('💡 Hint: Try using '+sug.join(', ')+'!');
+}
+
+// =====================================================
+//  OVERLAYS
+// =====================================================
+const correctMsgs=[
+  'Amazing counting! 🎉','Ka-ching! Perfect! 🛎️','The shopkeeper is happy! 🦊',
+  'Exactly right! So smart! ⭐','You nailed it! 🙌','Brilliant! 💡',
+  "That's exactly right! 🎊","Money master! 💰",
+];
+
+function showCorrectOverlay(pts){
+  document.getElementById('oc-emoji').textContent=['🎉','🌟','💰','🎊','⭐','🎈'][Math.floor(Math.random()*6)];
+  document.getElementById('oc-title').textContent='Correct! +'+pts+' pts';
+  document.getElementById('oc-msg').textContent=correctMsgs[Math.floor(Math.random()*correctMsgs.length)];
+  const isLast=(problemIndex>=9);
+  document.getElementById('oc-btn').textContent=isLast?'🏆 See Results!':'Next Question →';
+  document.getElementById('overlay-correct').classList.add('show');
+}
+
+function nextProblem(){
+  closeAllOverlays();
+  if(problemIndex>=9){
+    showLevelWin();
+  } else {
+    problemIndex++;
+    setupProblem();
+  }
+}
+
+function showLevelWin(){
+  const correct=problemResults.filter(Boolean).length;
+  const stars=correct>=9?3:correct>=7?2:correct>=5?1:0;
+  const starStr='⭐'.repeat(stars)+'☆'.repeat(3-stars);
+
+  // Save best performance
+  if(levelBestCorrect[currentBigLevel]===null||correct>levelBestCorrect[currentBigLevel]){
+    levelBestCorrect[currentBigLevel]=correct;
+    levelBestScores[currentBigLevel]=score;
+  }
+
+  document.getElementById('ow-trophy').textContent=stars===3?'🏆':stars===2?'🥇':stars===1?'🥈':'🥉';
+  document.getElementById('ow-title').textContent=stars===3?'PERFECT SCORE! 🎓':stars>=2?'Level Complete!':'Good Effort!';
+  document.getElementById('ow-stars').textContent=starStr;
+
+  const msgs={
+    3:["Incredible! You got everything right! You could run this toy store! 🧸","Perfect! Not a single mistake! You're a counting genius! 🎓"],
+    2:["Great work! You're really getting the hang of counting money! 💰","Almost perfect! A little more practice and you'll ace it! 💪"],
+    1:["You're learning! Keep practicing and you'll master it soon! 🌱","Good effort! Try again to improve your score! 🎯"],
+    0:["Don't give up! Try again and use the hints if you need them! 🦊","Keep practicing! Every expert started as a beginner! ⭐"],
+  };
+  const arr=msgs[stars];
+  document.getElementById('ow-msg').textContent=arr[Math.floor(Math.random()*arr.length)];
+  document.getElementById('ow-score').textContent=`Score: ${score} pts  •  ${correct} / 10 correct`;
+
+  const nextIdx=currentBigLevel+1;
+  const nextBtn=document.getElementById('ow-next-btn');
+  if(nextIdx<BIG_LEVELS.length){
+    nextBtn.textContent='Next Level →';
+    nextBtn.dataset.next=nextIdx;
+  } else {
+    nextBtn.textContent='🔄 Play Again!';
+    nextBtn.dataset.next=currentBigLevel;
+  }
+
+  playFanfare();
+  spawnConfetti(160);
+  document.getElementById('overlay-levelwin').classList.add('show');
+}
+
+function replayOrNext(){
+  const idx=parseInt(document.getElementById('ow-next-btn').dataset.next);
+  closeAllOverlays();
+  startLevel(idx);
+}
+
+// =====================================================
+//  LEVEL CARD STAR REFRESH
+// =====================================================
+function refreshLevelCards(){
+  for(let i=0;i<4;i++){
+    const el=document.getElementById('stars-'+i);
+    if(!el) continue;
+    const c=levelBestCorrect[i];
+    if(c===null){el.textContent='';continue;}
+    const stars=c>=9?3:c>=7?2:c>=5?1:0;
+    el.textContent='⭐'.repeat(stars)+(stars<3?'☆'.repeat(3-stars):'');
+  }
+}
+
+// =====================================================
+//  INIT
+// =====================================================
+document.getElementById('mascot').textContent=MASCOTS[Math.floor(Math.random()*MASCOTS.length)];
+
+// =====================================================
+//  CONFETTI
+// =====================================================
+function spawnConfetti(count){
+  const container=document.getElementById('confetti-container');
+  const colors=['#E8392A','#F7B731','#2ECC71','#3498DB','#9B59B6','#E91E8C','#FF8C00','#00BCD4'];
+  for(let i=0;i<count;i++){
+    const piece=document.createElement('div');
+    piece.className='confetti-piece';
+    const sz=randInt(6,16);
+    piece.style.cssText=`left:${Math.random()*100}%;top:-20px;width:${sz}px;height:${sz}px;background:${colors[Math.floor(Math.random()*colors.length)]};border-radius:${Math.random()>0.5?'50%':'2px'};animation-duration:${0.9+Math.random()*1.8}s;animation-delay:${Math.random()*0.8}s;transform:rotate(${Math.random()*360}deg);`;
+    container.appendChild(piece);
+    setTimeout(()=>piece.remove(),3500);
+  }
+}
+
+// =====================================================
+//  INIT
+// =====================================================
+document.getElementById('mascot').textContent=MASCOTS[Math.floor(Math.random()*MASCOTS.length)];
+</script>
+
+<!-- ============================================================ -->
+<!--  ADD TO HOME SCREEN NUDGE (iOS Safari only)                  -->
+<!-- ============================================================ -->
+<div id="a2hs-banner">
+  <div id="a2hs-icon">🧸</div>
+  <div id="a2hs-text">
+    <strong>Play full screen!</strong>
+    <div class="a2hs-steps">
+      Tap <span class="sf-share">⬆ Share</span> then <span class="sf-share">Add to Home Screen</span>
+    </div>
+  </div>
+  <button id="a2hs-close" onclick="dismissA2HS()" aria-label="Dismiss">✕</button>
+</div>
+
+<script>
+(function(){
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = ('standalone' in navigator) && navigator.standalone;
+  const dismissed = sessionStorage.getItem('a2hs_dismissed');
+  if(isIOS && !isStandalone && !dismissed){
+    setTimeout(()=>document.getElementById('a2hs-banner').classList.add('show'), 2500);
+  }
+})();
+function dismissA2HS(){
+  document.getElementById('a2hs-banner').classList.remove('show');
+  sessionStorage.setItem('a2hs_dismissed','1');
+}
+</script>
+</body>
+</html>
